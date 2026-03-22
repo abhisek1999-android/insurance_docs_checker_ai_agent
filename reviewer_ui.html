@@ -1,0 +1,40 @@
+<!-- reviewer_ui.html -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Reviewer Dashboard</title></head>
+<body>
+  <h1>Pending Reviews</h1>
+  {% if tasks %}
+    <ul>
+    {% for id, task in tasks.items() %}
+      <li><a href="/task/{{id}}">{{id}}</a> - created {{task.created_at}}</li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No pending tasks.</p>
+  {% endif %}
+
+  {% if task %}
+  <hr/>
+  <h2>Task {{task_id}}</h2>
+  <pre>{{ task.payload | tojson(indent=2) }}</pre>
+
+  <form method="post" action="/task/{{task_id}}/decision">
+    Decision:
+    <select name="decision">
+      <option value="approve">Approve</option>
+      <option value="edit">Edit</option>
+      <option value="reject">Reject</option>
+    </select><br/>
+    Comments:<br/>
+    <textarea name="comments" rows="3" cols="80"></textarea><br/>
+    If editing, override arguments below:<br/>
+    Recipient: <input name="recipient" /><br/>
+    Subject: <input name="subject" /><br/>
+    Body:<br/>
+    <textarea name="body" rows="6" cols="80"></textarea><br/>
+    <button type="submit">Submit</button>
+  </form>
+  {% endif %}
+</body>
+</html>
