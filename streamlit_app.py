@@ -4,7 +4,7 @@ import json
 
 from agent_workflow.ingest import ingest_file
 from agent_workflow.embeddings_upsert import upsert_chunks
-from langgraph_workflow import workflow
+from multi_agent_workflow import multi_agent_workflow as workflow
 from db.review_storage import ReviewStorage
 
 st.set_page_config(page_title="Policy Compliance System")
@@ -63,8 +63,14 @@ with tab2:
         # We run it in a thread so Streamlit doesn't freeze completely
         result_container = st.empty()
 
-        with st.spinner("Running compliance workflow (retrieve → analyse → summarise)..."):
+        with st.spinner("Running multi-agent workflow (Supervisor → Retrieval → Compliance → Communication)..."):
             result = workflow.invoke({"query": query})
+
+        # Show which agents ran
+        if result.get("agent_history"):
+            st.subheader("Agent Execution Order")
+            for i, agent in enumerate(result["agent_history"], 1):
+                st.write(f"**{i}.** {agent.replace('_', ' ').title()}")
 
         # Show retrieved chunks
         if result.get("retrieved_chunks"):
