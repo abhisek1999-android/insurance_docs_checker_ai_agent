@@ -5,16 +5,14 @@ import json
 from agent_workflow.ingest import ingest_file
 from agent_workflow.embeddings_upsert import upsert_chunks
 from multi_agent_workflow import multi_agent_workflow as workflow
-from db.review_storage import ReviewStorage
+from mcp_client import mcp
 
 st.set_page_config(page_title="Policy Compliance System")
 
 st.title("📄 Policy Compliance System")
 
 tab1, tab2, tab3 = st.tabs(["Upload Policy", "Query Policy", "Review Tasks"])
-# run streamlit - streamlit run streamlit_app.py
-
-store = ReviewStorage()
+# run streamlit - > streamlit run streamlit_app.py
 
 # -----------------------------
 # POLICY INGESTION
@@ -109,7 +107,7 @@ with tab3:
     if st.button("Refresh"):
         st.rerun()
 
-    pending = store.list_pending()
+    pending = mcp.call("list_pending_tasks") or {}
 
     if not pending:
         st.info("No pending tasks.")
@@ -122,13 +120,13 @@ with tab3:
 
                 with col1:
                     if st.button("Approve", key=f"approve_{task_id}"):
-                        store.set_decision(task_id, "approve")
+                        mcp.call("set_review_decision", {"task_id": task_id, "decision": "approve"})
                         st.success("Approved!")
                         st.rerun()
 
                 with col2:
                     if st.button("Reject", key=f"reject_{task_id}"):
-                        store.set_decision(task_id, "reject")
+                        mcp.call("set_review_decision", {"task_id": task_id, "decision": "reject"})
                         st.warning("Rejected.")
                         st.rerun()
 
@@ -141,6 +139,6 @@ with tab3:
                     if st.button("Edit & Approve", key=f"editapprove_{task_id}"):
                         new_args = task["payload"].get("arguments", {})
                         new_args["body"] = edited_body
-                        store.set_decision(task_id, "edit", new_args=new_args)
+                        mcp.call("set_review_decision", {"task_id": task_id, "decision": "edit", "new_args": new_args})
                         st.success("Edited and approved!")
                         st.rerun()

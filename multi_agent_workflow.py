@@ -16,8 +16,8 @@ Flow:
 import time, json, logging
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph
-from agent_workflow.tools import retrieve_policy_chunks, send_email_tool, get_contacts
-from db.review_storage import ReviewStorage
+from agent_workflow.tools import retrieve_policy_chunks, send_email_tool
+from mcp_client import mcp
 from dotenv import load_dotenv
 import os
 from langchain_groq import ChatGroq
@@ -31,8 +31,6 @@ llm = ChatGroq(temperature=0, groq_api_key=os.getenv("GROQ_API_KEY"), model=LLM_
 
 POLL_INTERVAL_SECONDS = 5
 POLL_TIMEOUT_SECONDS = 300
-
-store = ReviewStorage()
 
 
 # ─────────────────────────────────────────────
@@ -187,7 +185,7 @@ def communication_agent(state: dict) -> dict:
 
     # Step 2: Resolve contacts
     department = state["email_draft"].get("department", "HR")
-    contacts = get_contacts(department=department)
+    contacts = mcp.call("get_contacts", {"department": department})
     state["department_contacts"] = contacts
     if contacts:
         primary = contacts[0]
@@ -206,13 +204,13 @@ def communication_agent(state: dict) -> dict:
         "evidence_chunks": [c.get("chunk_id", "") for c in state.get("retrieved_chunks", [])],
         "context": state.get("context", ""),
     }
-    task_id = store.create_task(payload)
+    task_id = mcp.call("create_review_task", {"payload": payload})["task_id"]
     state["review_task_id"] = task_id
     logger.info("COMMUNICATION AGENT — review task=%s, polling...", task_id[:8])
 
     start = time.time()
     while True:
-        t = store.get_task(task_id)
+        t = mcp.call("get_review_task", {"task_id": task_id})
         if t and t["status"] == "done":
             decision = t["decision"]
             state["review_decision"] = decision

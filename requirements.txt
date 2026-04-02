@@ -27,3 +27,5 @@ python-multipart
 streamlit
 sqlalchemy 
 psycopg2-binary
+mcp
+langchain-groq

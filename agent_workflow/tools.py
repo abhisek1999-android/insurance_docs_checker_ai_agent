@@ -4,7 +4,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from agent_workflow.retrieval import coarse_retrieve, rerank_with_llm
 from dotenv import load_dotenv
-from db.postgre_setup import SessionLocal, DepartmentContact
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -13,28 +12,6 @@ def retrieve_policy_chunks(query: str, top_k=10):
     matches = coarse_retrieve(query, top_k=20)
     reranked = rerank_with_llm(query, matches, top_n=8)
     return [c["metadata"] for c in reranked]
-
-
-def get_contacts(department: str = None):
-    session = SessionLocal()
-    query = session.query(DepartmentContact)
-    if department:
-        query = query.filter(DepartmentContact.department.ilike(department))
-    contacts = query.all()
-    session.close()
-    return [
-        {
-            "id": c.id,
-            "department": c.department,
-            "contact_person": c.contact_person,
-            "designation": c.designation,
-            "email": c.email,
-            "phone": c.phone,
-            "extension": c.extension,
-            "location": c.location,
-        }
-        for c in contacts
-    ]
 
 
 
